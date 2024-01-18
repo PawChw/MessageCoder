@@ -12,6 +12,7 @@ if __name__ == '__main__':
     import kivy.core.clipboard as clipboard
     from kivy.lang import Builder
     from coder import Coder
+
     kv = '''
 <MenuScreen>:
     GridLayout:
@@ -63,8 +64,8 @@ if __name__ == '__main__':
             halign: 'center'
             valign: 'middle'
         Button:
-            id: showed
-            on_release: root.showed()
+            id: show_btn
+            on_release: root.show()
         Label:
             id: show
             halign: 'center'
@@ -84,92 +85,6 @@ if __name__ == '__main__':
             id: quittin
     '''
 
-    def get_size(bytes, suffix="B"):
-        if bytes is None:
-            return "ERROR"
-        factor = 1024
-        for unit in ["", "K", "M", "G", "T", "P"]:
-            if bytes < factor:
-                return f"{bytes:.2f}{unit}{suffix}"
-            bytes /= factor
-
-
-    def dec_to_rev_90(decimal):
-        if decimal > 8099 or decimal < 0:
-            return None
-        ninetytens = Coder.get_string(decimal)
-        if len(ninetytens) < 2:
-            ninetytens = "0" + ninetytens
-        elif len(ninetytens) > 2:
-            raise ValueError
-        list = []
-        for i in ninetytens:
-            list.append(i)
-        list.reverse()
-        ninetytens = ""
-        for i in list:
-            ninetytens += i
-        return ninetytens
-
-
-    def rev_90_to_dec(ninetytens):
-        list = []
-        for i in ninetytens:
-            list.append(i)
-        list.reverse()
-        ninetytens = ""
-        for i in list:
-            ninetytens += i
-        try:
-            return Coder.get_number(ninetytens)
-        except ValueError:
-            return None
-
-
-    def encode(text):
-        list = []
-        highest = 0
-        for i in range(len(text)):
-            a = text[i]
-            if a == "ẞ":
-                a = "ß"
-            tmp = ord(a)
-            if tmp > highest:
-                highest = tmp
-            list.append(tmp)
-        coder = random.randint(int((8099 - highest) / 4), 8099 - highest)
-        msg = dec_to_rev_90(coder)
-        for i in list:
-            tmp = dec_to_rev_90(i + coder)
-            if tmp is None:
-                return [False, f"Failed to encode {text[i]}"]
-            msg += tmp
-        return [True, str(msg)]
-
-
-    def decode():
-        code = clipboard.Clipboard.paste()
-        code_chars = []
-        chars = []
-        for i in code:
-            code_chars.append(i)
-        code_char_number = int(len(code_chars) / 2)
-        for i in range(code_char_number):
-            temp = str(code_chars.pop(0))
-            temp += str(code_chars.pop(0))
-            chars.append(str(temp))
-        message = ""
-        coder = rev_90_to_dec(chars.pop(0))
-        if coder is None:
-            return [False, "Can't decode - This message is corrupted"]
-        for i in chars:
-            tmp = rev_90_to_dec(i)
-            if tmp is None:
-                return [False, "Can't decode - This message is corrupted"]
-            message += chr(int(tmp - coder))
-        return [True, message]
-
-
 
     class MenuScreen(Screen):
         def on_pre_enter(self, *args):
@@ -180,14 +95,14 @@ if __name__ == '__main__':
 
     class EncodeScreen(Screen):
         def on_pre_enter(self):
-            self.ids.explanation.text = "Write message\nUse only english letters!"
+            self.ids.explanation.text = "Write message and press copy button to get encoded version"
             self.ids.copi.text = "Copy coded message"
             self.ids.copi.background_color = (1, 1, 1, 1)
             self.ids.toMenu.text = "Go to Menu"
             self.ids.code.text = ""
 
         def copied(self):
-            success, tmp = encode(self.ids.code.text)
+            success, tmp = self.__encode()
             if success:
                 clipboard.Clipboard.copy(tmp)
                 self.ids.copi.background_color = (0, 1, 0, 1)
@@ -200,17 +115,59 @@ if __name__ == '__main__':
             self.ids.copi.background_color = (1, 1, 1, 1)
             self.ids.copi.text = "Copy coded message"
 
+        def __encode(self):
+            list = []
+            highest = 0
+            for i in range(len(self.ids.code.text)):
+                a = self.ids.code.text[i]
+                if a == "ẞ":
+                    a = "ß"
+                tmp = ord(a)
+                if tmp > highest:
+                    highest = tmp
+                list.append(tmp)
+            coder = random.randint(int((8099 - highest) / 4), 8099 - highest)
+            msg = self.__dec_to_rev_90(coder)
+            for i in list:
+                tmp = self.__dec_to_rev_90(i + coder)
+                if tmp is None:
+                    return [False, f"Failed to encode {self.ids.code.text[i]}"]
+                msg += tmp
+            return [True, str(msg)]
+
+
+        @staticmethod
+        def __dec_to_rev_90(decimal):
+            if decimal > 8099 or decimal < 0:
+                return None
+            baseNinety = Coder.get_string(decimal)
+            if len(baseNinety) < 2:
+                baseNinety = "0" + baseNinety
+            elif len(baseNinety) > 2:
+                raise ValueError
+            base90encoded = []
+            for i in baseNinety:
+                base90encoded.append(i)
+            base90encoded.reverse()
+            baseNinety = ""
+            for i in base90encoded:
+                baseNinety += i
+            return baseNinety
+
 
     class DecodeScreen(Screen):
         def on_pre_enter(self):
             self.ids.explanation.text = "Decode message"
-            self.ids.showed.text = "Paste coded message"
+            self.ids.show_btn.text = "Paste coded message"
             self.ids.toMenu.text = "Go to Menu"
             self.ids.show.text = ""
-            self.ids.showed.background_color = (1, 1, 1, 1)
+            self.ids.show.background_color = (1, 1, 1, 1)
 
-        def showed(self):
-            decoded = decode()
+        def show(self):
+            try:
+                decoded = self.__decode()
+            except:
+                decoded = "Something went terribly wrong"
             if decoded[0]:
                 words = decoded[1].split(" ")
                 line = ""
@@ -234,10 +191,46 @@ if __name__ == '__main__':
                 for line in lines:
                     text += line + "\n"
                 self.ids.show.text = text
-                self.ids.showed.background_color = (0, 1, 0, 1)
+                self.ids.show.background_color = (0, 1, 0, 1)
             else:
                 self.ids.show.text = decoded[1]
-                self.ids.showed.background_color = (1, 0, 0, 1)
+                self.ids.show.background_color = (1, 0, 0, 1)
+
+        def __decode(self):
+            code = clipboard.Clipboard.paste()
+            code_chars = []
+            chars = []
+            for i in code:
+                code_chars.append(i)
+            code_char_number = int(len(code_chars) / 2)
+            for i in range(code_char_number):
+                temp = str(code_chars.pop(0))
+                temp += str(code_chars.pop(0))
+                chars.append(str(temp))
+            message = ""
+            coder = self.__rev_90_to_dec(chars.pop(0))
+            if coder is None:
+                return [False, "Can't decode - This message is corrupted"]
+            for i in chars:
+                tmp = self.__rev_90_to_dec(i)
+                if tmp is None:
+                    return [False, "Can't decode - This message is corrupted"]
+                message += chr(int(tmp - coder))
+            return [True, message]
+
+        @staticmethod
+        def __rev_90_to_dec(baseNinety):
+            base90encoded = []
+            for i in baseNinety:
+                base90encoded.append(i)
+            base90encoded.reverse()
+            baseNinety = ""
+            for i in base90encoded:
+                baseNinety += i
+            try:
+                return Coder.get_number(baseNinety)
+            except ValueError:
+                return None
 
 
     class QuittingScreen(Screen):
@@ -275,5 +268,6 @@ if __name__ == '__main__':
 
         def goToQuit(self):
             self.sm.switch_to(screen=self.screens[3])
+
 
     MessageCoder().run()
