@@ -12,8 +12,6 @@ if __name__ == '__main__':
     import kivy.core.clipboard as clipboard
     from kivy.lang import Builder
     from coder import Coder
-    import platform
-
     kv = '''
 <MenuScreen>:
     GridLayout:
