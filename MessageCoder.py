@@ -14,7 +14,7 @@ if __name__ == '__main__':
     from coder import Coder
 
     kv = '''
-<MenuScreen>:
+    <MenuScreen>:
     GridLayout:
         spacing: '10dp'
         cols: 1
@@ -29,8 +29,8 @@ if __name__ == '__main__':
         Button:
             id: quit
             on_release: app.goToQuit()
-
-<EncodeScreen>:
+    
+    <EncodeScreen>:
     GridLayout:
         spacing: '10dp'
         cols: 1
@@ -52,8 +52,8 @@ if __name__ == '__main__':
         Button:
             id: toMenu
             on_release: app.goToMenu()
-
-<DecodeScreen>:
+    
+    <DecodeScreen>:
     GridLayout:
         spacing: '10dp'
         cols: 1
@@ -73,9 +73,9 @@ if __name__ == '__main__':
         Button:
             id: toMenu
             on_release: app.goToMenu()        
-
-
-<QuittingScreen>:
+    
+    
+    <QuittingScreen>:
     GridLayout:
         spacing: '10dp'
         cols: 1
@@ -116,7 +116,7 @@ if __name__ == '__main__':
             self.ids.copi.text = "Copy coded message"
 
         def __encode(self):
-            list = []
+            decimalValues = []
             highest = 0
             for i in range(len(self.ids.code.text)):
                 a = self.ids.code.text[i]
@@ -125,16 +125,15 @@ if __name__ == '__main__':
                 tmp = ord(a)
                 if tmp > highest:
                     highest = tmp
-                list.append(tmp)
+                decimalValues.append(tmp)
             coder = random.randint(int((8099 - highest) / 4), 8099 - highest)
             msg = self.__dec_to_rev_90(coder)
-            for i in list:
+            for i in decimalValues:
                 tmp = self.__dec_to_rev_90(i + coder)
                 if tmp is None:
                     return [False, f"Failed to encode {self.ids.code.text[i]}"]
                 msg += tmp
             return [True, str(msg)]
-
 
         @staticmethod
         def __dec_to_rev_90(decimal):
